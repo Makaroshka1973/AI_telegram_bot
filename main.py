@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
 import ollama
-import asyncio
 import re
 from dotenv import load_dotenv
 from os import getenv
