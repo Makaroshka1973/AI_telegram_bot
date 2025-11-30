@@ -45,17 +45,20 @@ def handle_ai(client, message):
     chat_id = message.chat.id
     if str(chat_id) in WHITELIST:
         try:
+            if message.sender_chat:
+                sender = message.sender_chat.title
+            elif message.from_user:
+                sender = message.from_user.first_name
+
             if message.media:
-                add_message(chat_id, "user", f"[FROM: {message.from_user.first_name}] [MEDIA]")
+                add_message(chat_id, "user", f"[FROM: {sender}] [MEDIA]")
                 return 0
             elif not message.text:
-                add_message(chat_id, "user", f"[FROM: {message.from_user.first_name}] [UNKNOWN]")
+                add_message(chat_id, "user", f"[FROM: {sender}] [UNKNOWN]")
                 return 0
-            
-            if message.sender_chat:
-                add_message(chat_id, "user", f"[FROM: {message.sender_chat.title}] {message.text}")
-            elif message.from_user:
-                add_message(chat_id, "user", f"[FROM: {message.from_user.first_name}] {message.text}")
+            else:
+                add_message(chat_id, "user", f"[FROM: {sender}] {message.text}")
+
 
             if message.text.startswith(TRIGGER):
                 CONTEXT_LENGTH = get_int_from_command(message.text, "контекст")
