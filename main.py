@@ -3,7 +3,7 @@ import ollama
 import re
 from dotenv import load_dotenv
 from os import getenv
-from db import init_db, add_message, get_messages
+from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids
 
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
@@ -18,7 +18,10 @@ TRIGGER = getenv("BOT_TRIGGER")
 SESSION_NAME = getenv("SESSION_NAME")
 BOT_NAME = getenv("BOT_NAME")
 
-init_db()
+init_history_db()
+init_whitelist_db()
+add_whitelist_ids(WHITELIST)
+WHITELIST = get_whitelist_ids()
 
 def get_int_from_command(message: str, word: str):
     pattern = rf'!{word}=(\d+)'
@@ -43,7 +46,16 @@ print(f"{BOT_NAME} started!")
 @app.on_message()
 def handle_ai(client, message):
     chat_id = message.chat.id
-    if str(chat_id) in WHITELIST:
+    if message.text.startswith("!enable") and message.from_user.id == OWNER_ID:
+        add_whitelist_ids([chat_id])
+        WHITELIST.append(chat_id)
+        message.reply("Включено!")
+    elif message.text.startswith("!disable") and message.from_user.id == OWNER_ID:
+        remove_whitelist_ids([chat_id])
+        WHITELIST.remove(chat_id)
+        message.reply("Выключено!")
+        
+    if chat_id in WHITELIST:
         try:
             if message.sender_chat:
                 sender = message.sender_chat.title
