@@ -4,6 +4,7 @@ import re
 from dotenv import load_dotenv
 from os import getenv
 from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids
+from funcs import get_int_from_command, split_text, generate, get_media_type
 
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
@@ -23,28 +24,12 @@ init_whitelist_db()
 add_whitelist_ids(WHITELIST)
 WHITELIST = get_whitelist_ids()
 
-def get_int_from_command(message: str, word: str):
-    pattern = rf'!{word}=(\d+)'
-    m = re.search(pattern, message)
-    if m: num = int(m.group(1))
-    else: num = None
-    return num
-
-def split_text(text: str, max_length: int):
-    return [text[i:i+max_length] for i in range(0, len(text), max_length)]
-
-def generate(model, messages):
-    response = ollama.chat(
-        model=model,
-        messages=messages
-    )
-    return response["message"]
-
 app = Client(SESSION_NAME, bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 print(f"{BOT_NAME} started!")
 
 @app.on_message()
 def handle_ai(client, message):
+    media = get_media_type(message)
     chat_id = message.chat.id
     if message.text:
         if message.text.startswith("!enable") and message.from_user.id == OWNER_ID:
@@ -63,8 +48,10 @@ def handle_ai(client, message):
             elif message.from_user:
                 sender = message.from_user.first_name
 
-            if message.media:
-                add_message(chat_id, "user", f"[FROM: {sender}] [MEDIA]")
+            if media:
+                if message.caption: caption = message.caption
+                else: caption = ""
+                add_message(chat_id, "user", f"[FROM: {sender}] [{media.upper()}] {caption}")
                 return 0
             elif not message.text:
                 add_message(chat_id, "user", f"[FROM: {sender}] [UNKNOWN]")
