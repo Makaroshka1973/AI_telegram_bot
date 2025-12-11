@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-def init_db():
+def init_history_db():
     conn = sqlite3.connect("chat_history.db")
     c = conn.cursor()
     
@@ -49,3 +49,42 @@ def get_messages(chat_id, context_length):
     messages = c.fetchall()
     conn.close()
     return [{"role": role, "content": content} for role, content in reversed(messages)]
+
+def init_whitelist_db():
+    conn = sqlite3.connect("whitelist.db")
+    c = conn.cursor()
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ids (
+            id INTEGER PRIMARY KEY
+        )
+    ''')
+    conn.commit
+    conn.close()
+
+def add_whitelist_ids(ids: list):
+    conn = sqlite3.connect("whitelist.db")
+    c = conn.cursor()
+
+    c.executemany("INSERT OR IGNORE INTO ids (id) VALUES (?)",
+                  [(value,) for value in ids])
+    conn.commit()
+    conn.close()
+
+def remove_whitelist_ids(ids: list):
+    conn = sqlite3.connect("whitelist.db")
+    c = conn.cursor()
+
+    c.executemany("DELETE FROM ids WHERE id = ?",
+                  [(value,) for value in ids])
+    conn.commit()
+    conn.close()
+
+def get_whitelist_ids():
+    conn = sqlite3.connect("whitelist.db")
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM ids")
+    rows = c.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
