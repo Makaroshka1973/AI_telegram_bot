@@ -10,9 +10,11 @@ load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
 API_ID = getenv("TG_API_ID")
 API_HASH = getenv("TG_API_HASH")
-SYSPROMPT = [{"role": "system", "content": getenv("SYSPROMPT")}]
 WHITELIST = getenv("WHITELIST").split(" ")
+BASE_SYSPROMPT = [{"role": "system", "content": getenv("BASE_SYSPROMPT")}]
+ADVANCED_SYSPROMPT = [{"role": "system", "content": getenv("ADVANCES_SYSPROMPT")}]
 BASE_MODEL = getenv("BASE_OLLAMA_MODEL")
+ADVANCED_MODEL = getenv("ADVANCED_OLLAMA_MODEL")
 OWNER_ID = int(getenv("TG_OWNER_ID"))
 BASE_CONTEXT_LENGTH = int(getenv("BASE_CONTEXT_LENGTH"))
 TRIGGER = getenv("BOT_TRIGGER")
@@ -63,8 +65,9 @@ def handle_ai(client, message):
             if message.text.startswith(TRIGGER):
                 CONTEXT_LENGTH = get_int_from_command(message.text, "контекст")
                 if not CONTEXT_LENGTH: CONTEXT_LENGTH = BASE_CONTEXT_LENGTH
+                MODEL, SYSPROMPT = (ADVANCED_MODEL, ADVANCED_SYSPROMPT) if "!думай" in message.text else (BASE_MODEL, BASE_SYSPROMPT)
 
-                response = generate(BASE_MODEL, SYSPROMPT+get_messages(chat_id, CONTEXT_LENGTH))
+                response = generate(MODEL, get_messages(chat_id, CONTEXT_LENGTH)+SYSPROMPT)
                 add_message(chat_id, response["role"], response["content"])
 
                 messages = split_text(response["content"], 4096)
