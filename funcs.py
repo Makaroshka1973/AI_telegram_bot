@@ -1,5 +1,6 @@
 import re
 import ollama
+import datetime
 
 def get_int_from_command(message: str, word: str):
     pattern = rf'!{word}=(\d+)'
@@ -30,3 +31,6 @@ def get_media_type(message):
         elif message.document: media_type = "document"
         else: media_type = "unknown"
     return media_type
+
+def get_utc_datetime():
+    return datetime.datetime.utcnow().replace(microsecond=0)

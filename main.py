@@ -4,7 +4,7 @@ import re
 from dotenv import load_dotenv
 from os import getenv
 from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids
-from funcs import get_int_from_command, split_text, generate, get_media_type
+from funcs import get_int_from_command, split_text, generate, get_media_type, get_utc_datetime
 
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
@@ -53,13 +53,13 @@ def handle_ai(client, message):
             if media:
                 if message.caption: caption = message.caption
                 else: caption = ""
-                add_message(chat_id, "user", f"[FROM: {sender}] [{media.upper()}] {caption}")
+                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] [{media.upper()}] {caption}")
                 return 0
             elif not message.text:
-                add_message(chat_id, "user", f"[FROM: {sender}] [UNKNOWN]")
+                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] [UNKNOWN]")
                 return 0
             else:
-                add_message(chat_id, "user", f"[FROM: {sender}] {message.text}")
+                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] {message.text}")
 
 
             if message.text.startswith(TRIGGER):
