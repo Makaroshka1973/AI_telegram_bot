@@ -48,18 +48,30 @@ def handle_ai(client, message):
             if message.sender_chat:
                 sender = message.sender_chat.title
             elif message.from_user:
-                sender = message.from_user.first_name
+                sender = f"{message.from_user.first_name}(@{message.from_user.username})"
 
+            header = f"# [ID: {message.id}, FROM: {sender}, DATE: {get_utc_datetime()} UTC"
+            header2 = ""
+
+            if message.reply_to_message:
+                header += f", REPLY_TO: {message.reply_to_message.id}"
+            if message.quote:
+                header2 = "[QUOTE: {message.quote.text}]\n"
+            
             if media:
-                if message.caption: caption = message.caption
-                else: caption = ""
-                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] [{media.upper()}] {caption}")
+                text = message.caption if message.caption else ""
+                header += f", MEDIA: {get_media_type(message).upper()}]\n"
+                add_message(chat_id, "user", header+header2+text)
                 return 0
             elif not message.text:
-                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] [UNKNOWN]")
+                text = "[UNKNOWN]"
+                header += "]\n"
+                add_message(chat_id, "user", header+header2+text)
                 return 0
             else:
-                add_message(chat_id, "user", f"[DATE: {get_utc_datetime()} UTC; FROM: {sender}] {message.text}")
+                text = message.text
+                header += "]\n" 
+                add_message(chat_id, "user", header+header2+text)
 
 
             if message.text.startswith(TRIGGER):
