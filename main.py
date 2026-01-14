@@ -56,7 +56,7 @@ def handle_ai(client, message):
             if message.reply_to_message:
                 header += f", REPLY_TO: {message.reply_to_message.id}"
             if message.quote:
-                header2 = "[QUOTE: {message.quote.text}]\n"
+                header2 = f"[QUOTE: {message.quote.text}]\n"
             
             if media:
                 text = message.caption if message.caption else ""
