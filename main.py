@@ -4,8 +4,8 @@ import re
 import logging
 from dotenv import load_dotenv
 from os import getenv
-from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids, memory_get
-from funcs import get_int_from_command, split_text, generate, get_media_type, get_utc_datetime, edit_memory
+from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids, memory_get_all
+from funcs import get_int_from_command, split_text, generate, get_media_type, get_utc_datetime, add_to_memory, remove_from_memory
 
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
@@ -17,10 +17,8 @@ ADVANCED_SYSPROMPT = [{"role": "system", "content": getenv("ADVANCES_SYSPROMPT")
 MEMORY_SYSPROMPT = getenv("MEMORY_SYSPROMPT")
 BASE_MODEL = getenv("BASE_OLLAMA_MODEL")
 ADVANCED_MODEL = getenv("ADVANCED_OLLAMA_MODEL")
-MEMORY_MODEL = getenv("MEMORY_OLLAMA_MODEL")
 OWNER_ID = int(getenv("TG_OWNER_ID"))
 BASE_CONTEXT_LENGTH = int(getenv("BASE_CONTEXT_LENGTH"))
-MEMORY_CONTEXT_LENGTH = int(getenv("MEMORY_CONTEXT_LENGTH"))
 TRIGGER = getenv("BOT_TRIGGER")
 SESSION_NAME = getenv("SESSION_NAME")
 BOT_NAME = getenv("BOT_NAME")
@@ -58,6 +56,22 @@ def handle_ai(client, message):
         
     if chat_id in WHITELIST:
         logger.debug("Got a message")
+
+        if message.text:
+            if message.text.startswith("!память"):
+                message.reply(f"Текущая долгосрочная память:\n{memory_get_all(chat_id)}")
+            elif message.text.startswith("!запомни "):
+                add_to_memory(chat_id, re.sub("!запомни ", "", message.text))
+                message.reply("Добавлено в память!")
+            elif message.text.startswith("!забудь "):
+                n = None
+                try:
+                    n = int(re.sub("!забудь ", "", message.text))
+                except:
+                    message.reply("Произошла ошибка при попытке получить число из аргумента. Попробуйте снова")
+                if n is not None:
+                    remove_from_memory(chat_id, n)
+                    message.reply("Удалено из памяти!")
         
         try:
             if message.sender_chat:
@@ -104,16 +118,7 @@ def handle_ai(client, message):
                 if not CONTEXT_LENGTH: CONTEXT_LENGTH = BASE_CONTEXT_LENGTH
                 MODEL, SYSPROMPT = (ADVANCED_MODEL, ADVANCED_SYSPROMPT) if IS_ADVANCED else (BASE_MODEL, BASE_SYSPROMPT)
                 messages = get_messages(chat_id, CONTEXT_LENGTH)
-
-
-                users_messages = [m for m in messages if m["role"] == "user"]
-                tail = users_messages[-MEMORY_CONTEXT_LENGTH:]
-                memory_response = generate(MEMORY_MODEL, [{"role": "system", "content": MEMORY_SYSPROMPT+memory_get(chat_id)}]+tail)
-                edit_memory(chat_id, memory_response["content"])
-                logger.debug("Memory module worked!")
-
-
-                memory = [{"role": "system", "content": "Долгосрочная память этого чата:\n"+memory_get(chat_id)}]
+                memory = [{"role": "system", "content": "Долгосрочная память этого чата:\n"+memory_get_all(chat_id)}]
                 response = generate(MODEL, SYSPROMPT+memory+messages)
 
                 msgs = split_text(response["content"], 4096)

@@ -114,10 +114,21 @@ def memory_remove(chat_id: int, facts: list):
     conn.commit()
     conn.close()
 
-def memory_get(chat_id: int):
+def memory_get(chat_id: int, n: int):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute("SELECT content FROM memory WHERE chat_id = ? ORDER BY id LIMIT 1 OFFSET ?", (chat_id, n))
+    mem = c.fetchone()
+    fact = mem[0] if mem else None
+    conn.close()
+    return fact
+
+def memory_get_all(chat_id: int):
     conn = sqlite3.connect("chat_history.db")
     c = conn.cursor()
-    c.execute("SELECT content FROM memory WHERE chat_id = ?", (chat_id,))
-    memory = "\n".join([row[0] for row in c.fetchall()])
+    c.execute("SELECT content FROM memory WHERE chat_id = ? ORDER BY id", (chat_id,))
+    memory = ""
+    for n, fact in enumerate(c.fetchall()):
+        memory += f"{n}. {fact[0]}\n\n"
     conn.close()
-    return memory if memory else ""
+    return memory if memory else "Пусто!"
