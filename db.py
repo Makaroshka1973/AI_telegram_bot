@@ -15,10 +15,19 @@ def init_history_db():
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS memory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        UNIQUE(chat_id, content)
+    )
+    ''')
 
     # indexes
     c.execute('CREATE INDEX IF NOT EXISTS idx_chat_id ON messages (chat_id)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON messages (timestamp)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_memory_chat_id ON memory (chat_id)')
 
     conn.commit()
     conn.close()
@@ -88,3 +97,27 @@ def get_whitelist_ids():
     rows = c.fetchall()
     conn.close()
     return [row[0] for row in rows]
+
+def memory_add(chat_id: int, facts: list):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    for fact in facts:
+        c.execute("INSERT OR IGNORE INTO memory (chat_id, content) VALUES (?, ?)", (chat_id, fact))
+    conn.commit()
+    conn.close()
+
+def memory_remove(chat_id: int, facts: list):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    for fact in facts:
+        c.execute("DELETE FROM memory WHERE chat_id = ? AND content = ?", (chat_id, fact))
+    conn.commit()
+    conn.close()
+
+def memory_get(chat_id: int):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    c.execute("SELECT content FROM memory WHERE chat_id = ?", (chat_id,))
+    memory = "\n".join([row[0] for row in c.fetchall()])
+    conn.close()
+    return memory if memory else ""

@@ -1,6 +1,8 @@
 import re
+import json
 import ollama
 import datetime
+from db import memory_add, memory_remove
 
 def get_int_from_command(message: str, word: str):
     pattern = rf'!{word}=(\d+)'
@@ -34,3 +36,18 @@ def get_media_type(message):
 
 def get_utc_datetime():
     return datetime.datetime.utcnow().replace(microsecond=0)
+
+def edit_memory(chat_id, response):
+    cleaned = re.sub(r"^```json\s*", "", response.strip())
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        memory_data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse response from memory model: %s", response)
+        memory_data = {"memory_add": [], "memory_remove": []}
+
+    add = memory_data.get("memory_add", [])
+    remove = memory_data.get("memory_remove", [])
+
+    if add: memory_add(chat_id, add)
+    if remove: memory_remove(chat_id, remove)
