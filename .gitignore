@@ -4,3 +4,4 @@ venv
 *session*
 *.db
 *~
+*.bak
