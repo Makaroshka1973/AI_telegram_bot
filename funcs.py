@@ -2,7 +2,7 @@ import re
 import json
 import ollama
 import datetime
-from db import memory_add, memory_remove, memory_get
+from db import memory_add, memory_remove, memory_get, global_memory_add, global_memory_remove, global_memory_get
 
 def get_int_from_command(message: str, word: str):
     pattern = rf'!{word}=(\d+)'
@@ -43,3 +43,10 @@ def add_to_memory(chat_id: int, fact: str):
 def remove_from_memory(chat_id: int, n: int):
     fact = memory_get(chat_id, n)
     memory_remove(chat_id, [fact])
+
+def add_to_global_memory(fact: str):
+    global_memory_add([fact])
+
+def remove_from_global_memory(n: int):
+    fact = global_memory_get(n)
+    global_memory_remove([fact])

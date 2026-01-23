@@ -23,6 +23,12 @@ def init_history_db():
         UNIQUE(chat_id, content)
     )
     ''')
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS global_memory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT NOT NULL UNIQUE
+    )
+    ''')
 
     # indexes
     c.execute('CREATE INDEX IF NOT EXISTS idx_chat_id ON messages (chat_id)')
@@ -127,6 +133,41 @@ def memory_get_all(chat_id: int):
     conn = sqlite3.connect("chat_history.db")
     c = conn.cursor()
     c.execute("SELECT content FROM memory WHERE chat_id = ? ORDER BY id", (chat_id,))
+    memory = ""
+    for n, fact in enumerate(c.fetchall()):
+        memory += f"{n}. {fact[0]}\n\n"
+    conn.close()
+    return memory if memory else "Пусто!"
+
+def global_memory_add(facts: list):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    for fact in facts:
+        c.execute("INSERT OR IGNORE INTO global_memory (content) VALUES (?)", (fact,))
+    conn.commit()
+    conn.close()
+
+def global_memory_remove(facts: list):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    for fact in facts:
+        c.execute("DELETE FROM global_memory WHERE content = ?", (fact,))
+    conn.commit()
+    conn.close()
+
+def global_memory_get(n: int):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute("SELECT content FROM global_memory ORDER BY id LIMIT 1 OFFSET ?", (n,))
+    mem = c.fetchone()
+    fact = mem[0] if mem else None
+    conn.close()
+    return fact
+
+def global_memory_get_all():
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+    c.execute("SELECT content FROM global_memory ORDER BY id")
     memory = ""
     for n, fact in enumerate(c.fetchall()):
         memory += f"{n}. {fact[0]}\n\n"
