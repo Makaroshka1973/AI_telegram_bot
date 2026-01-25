@@ -43,31 +43,32 @@ def handle_ai(client, message):
     media = get_media_type(message)
     chat_id = message.chat.id
     if message.text:
-        if message.from_user.id == OWNER_ID:
-            if message.text.startswith("!enable"):
-                add_whitelist_ids([chat_id])
-                WHITELIST.append(chat_id)
-                logger.info(f"Chat {chat_id} added to whitelist")
-                message.reply("Включено!")
-            elif message.text.startswith("!disable"):
-                remove_whitelist_ids([chat_id])
-                WHITELIST.remove(chat_id)
-                logger.info(f"Chat {chat_id} removed from whitelist")
-                message.reply("Выключено!")
-            if message.text.startswith("!глоб-память"):
-                message.reply(f"Текущая глобальная долгосрочная память:\n{global_memory_get_all()}")
-            elif message.text.startswith("!глоб-запомни "):
-                add_to_global_memory(re.sub("!глоб-запомни ", "", message.text))
-                message.reply("Добавлено в глобальную память!")
-            elif message.text.startswith("!глоб-забудь "):
-                n = None
-                try:
-                    n = int(re.sub("!глоб-забудь ", "", message.text))
-                except:
-                    message.reply("Произошла ошибка при попытке получить число из аргумента. Попробуйте снова")
-                if n is not None:
-                    remove_from_global_memory(n)
-                    message.reply("Удалено из глобальной памяти!")
+        if message.from_user:
+            if message.from_user.id == OWNER_ID:
+                if message.text.startswith("!enable"):
+                    add_whitelist_ids([chat_id])
+                    WHITELIST.append(chat_id)
+                    logger.info(f"Chat {chat_id} added to whitelist")
+                    message.reply("Включено!")
+                elif message.text.startswith("!disable"):
+                    remove_whitelist_ids([chat_id])
+                    WHITELIST.remove(chat_id)
+                    logger.info(f"Chat {chat_id} removed from whitelist")
+                    message.reply("Выключено!")
+                if message.text.startswith("!глоб-память"):
+                    message.reply(f"Текущая глобальная долгосрочная память:\n{global_memory_get_all()}")
+                elif message.text.startswith("!глоб-запомни "):
+                    add_to_global_memory(re.sub("!глоб-запомни ", "", message.text))
+                    message.reply("Добавлено в глобальную память!")
+                elif message.text.startswith("!глоб-забудь "):
+                    n = None
+                    try:
+                        n = int(re.sub("!глоб-забудь ", "", message.text))
+                    except:
+                                    message.reply("Произошла ошибка при попытке получить число из аргумента. Попробуйте снова")
+                    if n is not None:
+                        remove_from_global_memory(n)
+                        message.reply("Удалено из глобальной памяти!")
         
     if chat_id in WHITELIST:
         logger.debug("Got a message")
