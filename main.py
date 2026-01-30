@@ -14,7 +14,6 @@ API_HASH = getenv("TG_API_HASH")
 WHITELIST = getenv("WHITELIST").split(" ")
 BASE_SYSPROMPT = [{"role": "system", "content": getenv("BASE_SYSPROMPT")}]
 ADVANCED_SYSPROMPT = [{"role": "system", "content": getenv("ADVANCES_SYSPROMPT")}]
-MEMORY_SYSPROMPT = getenv("MEMORY_SYSPROMPT")
 BASE_MODEL = getenv("BASE_OLLAMA_MODEL")
 ADVANCED_MODEL = getenv("ADVANCED_OLLAMA_MODEL")
 OWNER_ID = int(getenv("TG_OWNER_ID"))
