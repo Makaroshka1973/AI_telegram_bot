@@ -1,3 +1,5 @@
 pyrotgfork
 ollama
 python-dotenv
+httpx
+ddgs
