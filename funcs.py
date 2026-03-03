@@ -2,7 +2,35 @@ import re
 import json
 import ollama
 import datetime
+from pyrogram.types import Message
 from db import memory_add, memory_remove, memory_get, global_memory_add, global_memory_remove, global_memory_get
+from ddgs import DDGS
+from httpx import get
+
+search_util = DDGS()
+
+def ddgs_search(text: str, max_results=5):
+    """
+    Performs web search via various search engines
+    Parameters:
+        - text: Search text
+        - max_results: maximum search results
+    Returns:
+        JSON search results
+    """
+    return DDGS.text(text, max_results=max_results)
+
+def web_get(url) -> str:
+    """
+    Performs a web get request
+    Parameters:
+        - url: Web page url
+    Returns:
+        Raw string page data
+    """
+    return get(url).text
+
+ai_tools = {"ddgs_search": ddgs_search, "web_get": web_get}
 
 def get_int_from_command(message: str, word: str):
     pattern = rf'!{word}=(\d+)'
@@ -15,13 +43,26 @@ def split_text(text: str, max_length: int):
     return [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
 def generate(model, messages):
-    response = ollama.chat(
-        model=model,
-        messages=messages
-    )
+    while True:
+        response = ollama.chat(
+            model=model,
+            messages=messages,
+            tools=ai_tools
+        )
+        if response.message.tool_calls:
+            for tool_call in response.message.tool_calls:
+                function_to_call = ai_tools.get(tool_call.function.name)
+                if function_to_call:
+                    args = tool_call.function.arguments
+                    result = function_to_call(**args)
+                    messages.append({'role': 'tool', 'content': result, 'tool_name': tool_call.function.name})
+                else:
+                    messages.append({'role': 'tool', 'content': f'Tool {tool_call.function.name} not found', 'tool_name': tool_call.function.name})
+        else:
+            break
     return response["message"]
 
-def get_media_type(message):
+def get_media_type(message: Message):
     media_type = None
     if message.media:
         if message.photo: media_type = "photo"
