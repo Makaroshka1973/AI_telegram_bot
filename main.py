@@ -1,4 +1,5 @@
 from pyrogram import Client, filters
+from pyrogram.types import Message
 import ollama
 import re
 import logging
@@ -38,7 +39,7 @@ app = Client(SESSION_NAME, bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH
 logger.info(f"Started!")
 
 @app.on_message()
-def handle_ai(client, message):
+def handle_ai(client: Client, message: Message):
     media = get_media_type(message)
     chat_id = message.chat.id
     if message.text:
