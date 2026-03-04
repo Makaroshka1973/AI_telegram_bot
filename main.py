@@ -18,6 +18,7 @@ BASE_MODEL = getenv("BASE_OLLAMA_MODEL")
 ADVANCED_MODEL = getenv("ADVANCED_OLLAMA_MODEL")
 OWNER_ID = int(getenv("TG_OWNER_ID"))
 BASE_CONTEXT_LENGTH = int(getenv("BASE_CONTEXT_LENGTH"))
+ITERATION_LIMIT = int(getenv("ITERATION_LIMIT"))
 TRIGGER = getenv("BOT_TRIGGER")
 SESSION_NAME = getenv("SESSION_NAME")
 BOT_NAME = getenv("BOT_NAME")
@@ -135,15 +136,20 @@ def handle_ai(client, message):
                 messages = get_messages(chat_id, CONTEXT_LENGTH)
                 memory = [{"role": "system", "content": "Долгосрочная память этого чата:\n"+memory_get_all(chat_id)}]
                 global_memory = [{"role": "system", "content": "Глобальная долгосрочная память:\n"+global_memory_get_all()}]
-                response = generate(MODEL, SYSPROMPT+global_memory+memory+messages)
+                response = generate(MODEL, SYSPROMPT+global_memory+memory+messages, ITERATION_LIMIT)
 
-                msgs = split_text(response["content"], 4096)
-                for msg in msgs:
-                    message.reply(msg)
+                if response:
+                    msgs = split_text(response["content"], 4096)
+                    for msg in msgs:
+                        message.reply(msg)
 
-                if response["content"].strip() != "":
-                    add_message(chat_id, response["role"], response["content"])
-                    logger.debug("Answered!")
+                    if response["content"].strip() != "":
+                        add_message(chat_id, response["role"], response["content"])
+                        logger.debug("Answered!")
+                else:
+                    add_message(chat_id, "assistant", "Был превышен лимит итераций. Пожалуйста, попробуйте снова.")
+                    message.reply("Был превышен лимит итераций. Пожалуйста, попробуйте снова.")
+                    logger.warning("The iteration limit has been exceeded!")
                 
                 return 0
 
