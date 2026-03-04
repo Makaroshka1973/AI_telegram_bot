@@ -76,13 +76,11 @@ def generate(model, messages, max_iterations=5):
             tools=tools_defs
         )
         if response.message.tool_calls:
-            print(response.message.tool_calls)
             for tool_call in response.message.tool_calls:
                 function = ai_tools.get(tool_call.function.name)
                 if function:
                     args = tool_call.function.arguments
                     result = function(**args)
-                    print(result)
                     messages.append({"role": "user", "content": f"Result of tool {tool_call.function.name}: {result}"})
         else:
             break
