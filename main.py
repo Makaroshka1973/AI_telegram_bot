@@ -1,10 +1,12 @@
 from pyrogram import Client, filters
+from pyrogram.types import Message
 import ollama
 import re
 import logging
+import base64
 from dotenv import load_dotenv
 from os import getenv
-from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids, memory_get_all, global_memory_get_all
+from db import init_history_db, add_message, get_messages, init_whitelist_db, add_whitelist_ids, remove_whitelist_ids, get_whitelist_ids, memory_get_all, global_memory_get_all, add_image_to_message
 from funcs import get_int_from_command, split_text, generate, get_media_type, get_utc_datetime, add_to_memory, remove_from_memory, add_to_global_memory, remove_from_global_memory
 
 load_dotenv()
@@ -37,6 +39,30 @@ WHITELIST = get_whitelist_ids()
 
 app = Client(SESSION_NAME, bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 logger.info(f"Started!")
+
+@app.on_message(filters.command("load") & filters.reply)
+def load_image_to_context(client, message):
+    reply = message.reply_to_message
+
+    if not reply.photo:
+        message.reply("Эта команда работает только в ответ на сообщение с картинкой!")
+        return
+
+    logger.debug("Got /load command!")
+
+    try:
+        file = client.download_media(reply.photo.sizes[-1].file_id, in_memory=True)
+        b64_image = base64.b64encode(file.getvalue()).decode('utf-8')
+
+        add_image_to_message(reply.chat.id, reply.id, b64_image)
+
+        message.reply("Картинка загружена!")
+
+    except Exception as e:
+        logger.error(e)
+        error = f"Упс, ошибочка!\n{e}"
+        message.reply(error)
+        return 0
 
 @app.on_message()
 def handle_ai(client, message):
@@ -109,18 +135,18 @@ def handle_ai(client, message):
                 logger.debug("Message is media")
                 text = message.caption if message.caption else ""
                 header += f", MEDIA: {get_media_type(message).upper()}]\n"
-                add_message(chat_id, "user", header+header2+text)
+                add_message(message.id, chat_id, "user", header+header2+text)
                 return 0
             elif not message.text:
                 logger.debug("Message has not a known type")
                 text = "[UNKNOWN]"
                 header += "]\n"
-                add_message(chat_id, "user", header+header2+text)
+                add_message(message.id, chat_id, "user", header+header2+text)
                 return 0
             else:
                 text = message.text
                 header += "]\n" 
-                add_message(chat_id, "user", header+header2+text)
+                add_message(message.id, chat_id, "user", header+header2+text)
 
 
             if message.text.startswith(TRIGGER):
@@ -132,8 +158,9 @@ def handle_ai(client, message):
                     IS_ADVANCED = False
                 CONTEXT_LENGTH = get_int_from_command(message.text, "контекст")
                 if not CONTEXT_LENGTH: CONTEXT_LENGTH = BASE_CONTEXT_LENGTH
+                get_images = False if "!номедиа" in message.text else True
                 MODEL, SYSPROMPT = (ADVANCED_MODEL, ADVANCED_SYSPROMPT) if IS_ADVANCED else (BASE_MODEL, BASE_SYSPROMPT)
-                messages = get_messages(chat_id, CONTEXT_LENGTH)
+                messages = get_messages(chat_id, CONTEXT_LENGTH, get_images)
                 memory = [{"role": "system", "content": "Долгосрочная память этого чата:\n"+memory_get_all(chat_id)}]
                 global_memory = [{"role": "system", "content": "Глобальная долгосрочная память:\n"+global_memory_get_all()}]
                 response = generate(MODEL, SYSPROMPT+global_memory+memory+messages, ITERATION_LIMIT)
@@ -144,10 +171,10 @@ def handle_ai(client, message):
                         message.reply(msg)
 
                     if response["content"].strip() != "":
-                        add_message(chat_id, response["role"], response["content"])
+                        add_message(message.id, chat_id, response["role"], response["content"])
                         logger.debug("Answered!")
                 else:
-                    add_message(chat_id, "assistant", "Был превышен лимит итераций. Пожалуйста, попробуйте снова.")
+                    add_message(message.id, chat_id, "assistant", "Был превышен лимит итераций. Пожалуйста, попробуйте снова.")
                     message.reply("Был превышен лимит итераций. Пожалуйста, попробуйте снова.")
                     logger.warning("The iteration limit has been exceeded!")
                 
@@ -156,7 +183,7 @@ def handle_ai(client, message):
         except Exception as e:
             logger.error(e)
             error = f"Упс, ошибочка!\n{e}"
-            add_message(chat_id, "assistant", error)
+            add_message(message.id, chat_id, "assistant", error)
             message.reply(error)
             return 0
 

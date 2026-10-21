@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from datetime import datetime
 
 def init_history_db():
@@ -9,9 +10,11 @@ def init_history_db():
     c.execute('''
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message_id INTEGER NOT NULL,
         chat_id INTEGER NOT NULL,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
+        images TEXT
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
@@ -38,23 +41,23 @@ def init_history_db():
     conn.commit()
     conn.close()
 
-def add_message(chat_id, role, content):
+def add_message(message_id, chat_id, role, content):
     conn = sqlite3.connect("chat_history.db")
     c = conn.cursor()
     c.execute('''
-    INSERT INTO messages (chat_id, role, content)
-    VALUES (?, ?, ?)
-    ''', (chat_id, role, content))
+    INSERT INTO messages (message_id, chat_id, role, content)
+    VALUES (?, ?, ?, ?)
+    ''', (message_id, chat_id, role, content))
 
     conn.commit()
     conn.close()
 
-def get_messages(chat_id, context_length):
+def get_messages(chat_id, context_length, get_images=True):
     conn = sqlite3.connect("chat_history.db")
     c = conn.cursor()
 
     c.execute('''
-    SELECT role, content 
+    SELECT role, content, images
     FROM messages 
     WHERE chat_id = ? 
     ORDER BY timestamp DESC 
@@ -63,7 +66,44 @@ def get_messages(chat_id, context_length):
 
     messages = c.fetchall()
     conn.close()
-    return [{"role": role, "content": content} for role, content in reversed(messages)]
+
+    result = []
+    for role, content, images_raw in reversed(messages):
+        msg_obj = {"role": role, "content": content}
+        if get_images:
+            images = []
+            if images_raw:
+                try:
+                    images = json.loads(images_raw)
+                except:
+                    images = []
+
+            msg_obj["images"] = images
+
+        result.append(msg_obj)
+
+    return result
+
+def add_image_to_message(chat_id, message_id, b64_image):
+    conn = sqlite3.connect("chat_history.db")
+    c = conn.cursor()
+
+    c.execute("SELECT images FROM messages WHERE chat_id = ? AND message_id = ?", (chat_id, message_id))
+    row = c.fetchone()
+
+    current_images = []
+    if row and row[0]:
+        try:
+            current_images = json.loads(row[0])
+        except:
+            current_images = []
+
+    current_images.append(b64_image)
+
+    c.execute("UPDATE messages SET images = ? WHERE chat_id = ? AND message_id = ?", (json.dumps(current_images), chat_id, message_id))
+
+    conn.commit()
+    conn.close()
 
 def init_whitelist_db():
     conn = sqlite3.connect("whitelist.db")
