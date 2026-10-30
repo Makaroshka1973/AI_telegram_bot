@@ -1,3 +1,5 @@
 pyrotgfork
+tgcrypto-pyrofork
 ollama
 python-dotenv
+ddgs
